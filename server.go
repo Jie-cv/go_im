@@ -53,6 +53,7 @@ func (s *Server) BroadCast(user *User, msg string) {
 func (s *Server) Handler(connect net.Conn) {
 	user := NewUser(connect, s)
 	user.Online()
+	isLive := make(chan bool)
 	go func() {
 		buf := make([]byte, 4096)
 		for {
@@ -67,10 +68,20 @@ func (s *Server) Handler(connect net.Conn) {
 			}
 			msg := string(buf[:n-1])
 			user.DoMessage(msg)
+			isLive <- true
 		}
 	}()
 
-	select {}
+	for {
+		select {
+		case <-isLive:
+		case <-time.After(time.Second * 10):
+			user.backMsg("你已被踢出下线")
+			user.Connect.Close()
+			close(user.Channel)
+			return
+		}
+	}
 }
 
 func (s *Server) Start() {
