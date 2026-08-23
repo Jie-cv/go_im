@@ -39,8 +39,23 @@ func (u *User) Offline() {
 	u.server.BroadCast(u, "下线了")
 }
 
-func (u *User) SendMsg(msg string) {
-	u.server.BroadCast(u, msg)
+// 给自己的消息
+func (u *User) backMsg(msg string) {
+	u.Connect.Write([]byte(msg))
+}
+
+func (u *User) DoMessage(msg string) {
+	if msg == "who" {
+		for _, v := range u.server.OnlineMap {
+			if v.Name == u.Name {
+				continue
+			}
+			res_msg := "[" + v.Name + " 在线....]\n"
+			u.backMsg(res_msg)
+		}
+	} else {
+		u.server.BroadCast(u, msg)
+	}
 }
 
 func (u *User) ListenMessage() {
