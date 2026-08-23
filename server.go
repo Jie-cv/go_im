@@ -43,7 +43,7 @@ func (s *Server) ListenMessage() {
 func (s *Server) BroadCast(user *User, msg string) {
 	sendMsg := fmt.Sprintf(
 		"[%s] %s: %s",
-		time.Now().Format("2006-01-02 15:04:05"),
+		time.Now().Format("15:04:05"),
 		user.Name,
 		msg,
 	)
@@ -51,20 +51,14 @@ func (s *Server) BroadCast(user *User, msg string) {
 }
 
 func (s *Server) Handler(connect net.Conn) {
-	user := NewUser(connect)
-
-	s.OnlineMapLock.Lock()
-	s.OnlineMap[user.Name] = user
-	s.OnlineMapLock.Unlock()
-
-	s.BroadCast(user, "上线了")
-
+	user := NewUser(connect, s)
+	user.Online()
 	go func() {
 		buf := make([]byte, 4096)
 		for {
 			n, err := user.Connect.Read(buf)
 			if n == 0 {
-				s.BroadCast(user, "下线了...")
+				user.Offline()
 				return
 			}
 			if err != nil && err == io.EOF {
@@ -72,11 +66,7 @@ func (s *Server) Handler(connect net.Conn) {
 				return
 			}
 			msg := string(buf[:n-1])
-			s.Message <- fmt.Sprintf(
-				"[%s]: %s",
-				time.Now().Format("15:04:05"),
-				msg,
-			)
+			user.SendMsg(msg)
 		}
 	}()
 
