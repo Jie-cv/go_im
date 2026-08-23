@@ -53,6 +53,22 @@ func (u *User) DoMessage(msg string) {
 			res_msg := "[" + v.Name + " 在线....]\n"
 			u.backMsg(res_msg)
 		}
+	} else if len(msg) > 6 && msg[:7] == "rename|" {
+		new_name := msg[7:]
+		u.server.OnlineMapLock.Lock()
+		_, ok := u.server.OnlineMap[new_name]
+		u.server.OnlineMapLock.Unlock()
+		if ok {
+			u.backMsg("当前用户名已存在\n")
+		} else {
+			u.server.OnlineMapLock.Lock()
+			delete(u.server.OnlineMap, u.Name)
+			u.server.OnlineMap[new_name] = u
+			u.Name = new_name
+			u.server.OnlineMapLock.Unlock()
+			u.backMsg("用户名修改成功,修改为:" + u.Name + "\n")
+		}
+
 	} else {
 		u.server.BroadCast(u, msg)
 	}
