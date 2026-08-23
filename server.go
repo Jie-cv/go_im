@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"sync"
 	"time"
@@ -57,6 +58,27 @@ func (s *Server) Handler(connect net.Conn) {
 	s.OnlineMapLock.Unlock()
 
 	s.BroadCast(user, "上线了")
+
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, err := user.Connect.Read(buf)
+			if n == 0 {
+				s.BroadCast(user, "下线了...")
+				return
+			}
+			if err != nil && err == io.EOF {
+				fmt.Println("Connect Reader err:", err)
+				return
+			}
+			msg := string(buf[:n-1])
+			s.Message <- fmt.Sprintf(
+				"[%s]: %s",
+				time.Now().Format("15:04:05"),
+				msg,
+			)
+		}
+	}()
 
 	select {}
 }
