@@ -2,6 +2,7 @@ package main
 
 import (
 	"net"
+	"strings"
 )
 
 type User struct {
@@ -69,6 +70,26 @@ func (u *User) DoMessage(msg string) {
 			u.backMsg("用户名修改成功,修改为:" + u.Name + "\n")
 		}
 
+	} else if len(msg) > 4 && msg[:3] == "to|" {
+		strArr := strings.Split(msg, "|")
+		to_name := strArr[1]
+		if to_name == "" {
+			u.backMsg("请输入目标用户名\n")
+			return
+		}
+		if to_name == u.Name {
+			u.backMsg("不能给自己发消息\n")
+			return
+		}
+		u.server.OnlineMapLock.Lock()
+		remoteUser, ok := u.server.OnlineMap[to_name]
+		u.server.OnlineMapLock.Unlock()
+		if !ok {
+			u.backMsg("目标用户不存在\n")
+			return
+		}
+		content := strArr[2]
+		remoteUser.backMsg(u.Name + "对你说" + " " + content)
 	} else {
 		u.server.BroadCast(u, msg)
 	}
